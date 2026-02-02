@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canteen Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary-color: #2c3e50;
+            --accent-color: #27ae60;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background-color: #f4f7f6;
+            flex-direction: row;
+        }
+
+        /* --- SIDEBAR (PC) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #1a252f;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .sidebar ul { list-style: none; padding: 0; margin: 0; }
+
+        .sidebar li {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #34495e;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .sidebar li.active { background-color: var(--accent-color); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex-grow: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .controls {
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 210mm;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            width: 100%; /* Full width on mobile */
+            max-width: 300px;
+        }
+
+        .btn-download { background-color: var(--accent-color); }
+
+        /* --- THE REPORT PAGE (Responsive) --- */
+        #report-content {
+            width: 100%;
+            max-width: 210mm; /* A4 Width */
+            min-height: 297mm;
+            padding: 10mm; /* Reduced for mobile */
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow-x: auto; /* Scroll table if too wide on tiny phones */
+        }
+
+        h2 { font-size: 1.2rem; text-align: center; text-decoration: underline; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 600px; /* Ensures table doesn't crush */ }
+
+        th, td { border: 1px solid black; padding: 8px; font-size: 12px; }
+
+        input, select, textarea { width: 100%; border: none; font-size: 14px; }
+
+        /* --- MOBILE & TAB RESPONSIVENESS --- */
+        @media (max-width: 1024px) {
+            body { flex-direction: column; }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                max-height: 200px; /* Scrollable horizontal-ish menu */
+            }
+
+            .sidebar-header { padding: 10px; }
+
+            .sidebar ul {
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .sidebar li {
+                display: inline-block;
+                padding: 10px 20px;
+                border-bottom: none;
+                border-right: 1px solid #34495e;
+            }
+
+            .main-content { margin-left: 0; padding: 5px; }
+
+            #report-content {
+                padding: 5mm;
+                margin-top: 10px;
+            }
+        }
+
+        @media print {
+            .sidebar, .controls { display: none !important; }
+            .main-content { margin-left: 0; }
+            #report-content { box-shadow: none; padding: 0; margin: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">MENU (Swipe left/right)</div>
+        <ul id="category-list">
+            <li onclick="updateCategory('BAKERY PRODUCT', this)" class="active">Bakery</li>
+            <li onclick="updateCategory('EGGS', this)">Eggs</li>
+            <li onclick="updateCategory('FRUITS', this)">Fruits</li>
+            <li onclick="updateCategory('MILK', this)">Milk</li>
+            <li onclick="updateCategory('VEGETABLES', this)">Vegetables</li>
+            <li onclick="updateCategory('MEAT', this)">Meat</li>
+            <li onclick="updateCategory('POULTRY', this)">Poultry</li>
+            <li onclick="updateCategory('GROCERY', this)">Grocery</li>
+            <li onclick="updateCategory('DAIRY', this)">Dairy</li>
+            <li onclick="updateCategory('FROZEN', this)">Frozen</li>
+            <li onclick="updateCategory('BEVERAGES', this)">Beverages</li>
+            <li onclick="updateCategory('SPICES', this)">Spices</li>
+            <li onclick="updateCategory('GRAINS', this)">Grains</li>
+            <li onclick="updateCategory('CLEANING', this)">Cleaning</li>
+            <li onclick="updateCategory('OILS', this)">Oils</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="controls">
+            <button class="btn btn-download" onclick="generatePDF()">Download PDF</button>
+        </div>
+
+        <div id="report-content">
+            <h2 id="report-title">CHECK SHEET OF INCOMING BAKERY PRODUCT</h2>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px;">
+                <span><strong>DATE:</strong> <input type="date" style="width: 130px; border-bottom: 1px solid #000;"></span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="5%">SR.</th>
+                            <th width="45%" id="dynamic-column">NAME OF THE BAKERY PRODUCT</th>
+                            <th width="15%">QTY REC.</th>
+                            <th width="15%">QTY CHK.</th>
+                            <th width="20%">RATING</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-rows"></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px; line-height: 1.6;">
+                <strong>CHECKED BY:</strong> <input type="text" style="width: 200px; border-bottom: 1px solid #000;"><br>
+                
+                <p><small>WHILE CHECKING FOLLOWING  POINTS CONSIDERED & MARK GIVEN ACCORDINGLY.</small></p>
+                <p><small>POINTS CONSIDERED : Products Condition, Freshness, Size, Quality, Taste.</small></p>
+                <strong>REMARK:</strong>
+                <textarea style="border: 1px solid #ccc; height: 40px; margin-top: 5px;"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function buildTable() {
+            const tbody = document.getElementById('table-rows');
+            tbody.innerHTML = '';
+            for(let i=1; i<=12; i++) {
+                tbody.innerHTML += `<tr>
+                    <td>${i}</td>
+                    <td><input type="text"></td>
+                    <td><input type="number"></td>
+                    <td><input type="number"></td>
+                    <td>
+                        <select>
+                            <option value="">--</option>
+                            <option>Excellent</option>
+                            <option>Good</option>
+                            <option>Average</option>
+                            <option>Poor</option>
+                        </select>
+                    </td>
+                </tr>`;
+            }
+        }
+        buildTable();
+
+        function updateCategory(name, element) {
+            document.getElementById('report-title').innerText = `CHECK SHEET OF INCOMING ${name}`;
+            document.getElementById('dynamic-column').innerText = `NAME OF THE ${name}`;
+            document.querySelectorAll('.sidebar li').forEach(li => li.classList.remove('active'));
+            element.classList.add('active');
+            
+            // On mobile, scroll to top of report when item is clicked
+            if(window.innerWidth < 1024) {
+                window.scrollTo({ top: 200, behavior: 'smooth' });
+            }
+        }
+
+        function generatePDF() {
+            const element = document.getElementById('report-content');
+            const name = document.getElementById('report-title').innerText;
+            
+            // Temporarily fix width for PDF generation to ensure it looks like A4
+            const originalWidth = element.style.width;
+            element.style.width = "210mm"; 
+
+            html2pdf().set({
+                margin: 5,
+                filename: `${name}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(element).save().then(() => {
+                element.style.width = originalWidth; // Restore original width
+            });
+        }
+    </script>
+</body>
+</html>
